@@ -206,17 +206,30 @@ G       *= 1000000000                       ##[GPa -> Pa]
 phi     *= np.pi/180                        ##[deg -> rad]
 P       *= 1000                             ##[kN -> N]
 
+## =========== Additional parameters
+x_I = x_2-x_a/2
+x_II = x_2+x_a/2
+Py_II = -P*np.sin(phi)
+Pz_II = P*np.cos(phi)
+
 ## =========== Import Aero Data: ===========
-AeroDataLoad    = np.loadtxt("aerodynamicloaddo228.dat", delimiter=",")     ## Aero Data along [Z,X] [kN m^-1] 
+AeroDataLoad    = 1000*np.loadtxt("aerodynamicloaddo228.dat", delimiter=",")     ## Aero Data along [Z,X] [N m^-2] 
 theta_zi        = np.arange(1,82+1,1)/81*m.pi
 theta_xi        = np.arange(1,42+1,1)/41*m.pi
-AeroDataZ       = C_a - 0.5*( 0.5*C_a*(1-np.cos(theta_zi[:-1])) + 0.5*C_a/2*(1-np.cos(theta_zi[1:])) )
-AeroDataX       = 0.5*( 0.5*l_a*(1-np.cos(theta_xi[:-1])) + 0.5*l_a/2*(1-np.cos(theta_xi[1:])) )
+AeroDataZ       = C_a - 0.5*( 0.5*C_a*(1-np.cos(theta_zi[:-1])) + 0.5*C_a*(1-np.cos(theta_zi[1:])) )
+AeroDataX       = 0.5*( 0.5*l_a*(1-np.cos(theta_xi[:-1])) + 0.5*l_a*(1-np.cos(theta_xi[1:])) )
 q               = np.zeros((AeroDataLoad.shape[1]))
 qm              = np.zeros((AeroDataLoad.shape[1]))
 for i in range(AeroDataLoad.shape[1]):
     q[i]    = integrator_cumutrap(AeroDataLoad[:,i], AeroDataZ, 0)
     qm[i]   = integrator_cumutrap(AeroDataLoad[:,i]*(AeroDataZ-0.25*C_a), AeroDataZ, 0)
+AeroDataX       = np.hstack((0,AeroDataX,l_a))
+q               = np.hstack((0,q,0))
+qm              = np.hstack((0,qm,0))
+
+print(AeroDataX)
+print(q)
+print(qm)
 
 plt.plot(AeroDataX, q)
 plt.plot(AeroDataX, qm)
@@ -467,3 +480,80 @@ print("Torsional Constant \t= {:4g} \tm^4".format(J))
 #plt.plot(ZY_stif[0,:], ZY_stif[1,:],marker="o",linestyle="none")
 plt.show()
 #
+
+# Part by Simon: Matrix A_big to solve for the 13 unknowns, x_big, with 13 compatibility equations
+# x_big: [C0, C1, C2, C3, C4, Ry_1, Ry_2, Ry_3, Rz_1, Rz_2, Rz_3, Py_I, Pz_I] These are all in the tilted coordinate frame, so actually x => x'
+
+# !!!!! REMOVE THIS SOON WHEN INTEGRATION IS LOOKED AT
+
+x = np.linspace(0,l_a,8000)
+q = linear_interpolate(q,AeroDataX,x)
+qm = linear_interpolate(qm,AeroDataX,x)
+
+laa = x[x<=l_a]
+x11 = x[x<=x_1]
+x22 = x[x<=x_2]
+x33 = x[x<=x_3]
+xII = x[x<=x_I] #This is representing integration up to x_I!!
+
+#I need the following variables:
+Lab_I = 1       # Length of the semi-circle [m]
+Lba_I = 1       # Length of the spar
+Lab_II = Lba_I  #
+Lba_II = 1      # Total length of both straight parts of aileron
+Am_I = 1        # Cell I enclosed area [m^2]
+Am_II = 1       # Cell II enclosed area
+eta = 1         # Distance from LE to shear center
+
+#Redefining variables
+Iyy = Iyy_airfoil
+Izz = Izz_airfoil
+
+#Defining matrices for torsion of multicell structure
+A_shearflow = np.array([
+    [1/(2*Am_I*G)*(Lab_I/t_sk+Lba_I/t_sp)-1/(2*Am_II*G)*(Lab_II/t_sp),1/(2*Am_I*G)*(Lba_I/t_sp)-1/(2*Am_II*G)*(Lab_II/t_sp+Lba_I/t_sk)],
+    [2*Am_I,2*Am_II]
+    ])
+
+B_twist = np.array([
+    [1/(2*Am_I*G)*(Lab_I/t_sk+Lba_I/t_sp),-1/(2*Am_I*G)*(Lba_I/t_sp)]
+    ])
+
+C_twist = np.dot(B_twist,np.linalg.inv(A_shearflow))
+
+
+
+A_big = np.array([
+    [0,0,0,0,0,0,0,0,0,0,0,1,np.tan(phi)],      # [1]
+    [0,0,0,0,0,1,1,1,0,0,0,1,0],                # [2]
+    [0,0,0,0,0,0,0,0,1,1,1,0,1],                # [3]
+    [0,0,0,0,0,0,0,0,0,0,0,h_a/2,h_a/2],                # [4]
+    [0,0,0,0,0,0,0,0,(l_a-x_1),(l_a-x_2),(l_a-x_3),(l_a-x_I),0],                # [5]
+    [0,0,0,0,0,-(l_a-x_1),-(l_a-x_2),-(l_a-x_3),0,0,0,-(l_a-x_I),0],                # [6]
+    [np.cos(phi)*-1/(E*Izz)*x_1  ,  np.cos(phi)*-1/(E*Izz)  ,  np.sin(phi)*-1/(E*Iyy)*x_1  ,  np.sin(phi)*-1/(E*Iyy)  ,  np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])  ,  np.cos(phi)*-1/(E*Izz)/6*(x_1-x_1)**3 + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_1-x_1)  ,  np.cos(phi)*-1/(E*Izz)/6*(x_2-x_2)**3 + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_2-x_2)  ,  np.cos(phi)*-1/(E*Izz)/6*(x_3-x_3)**3 + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_3-x_3)  ,  np.sin(phi)*-1/(E*Iyy)*-1/6*(x_1-x_1)**3  ,  np.sin(phi)*-1/(E*Iyy)*-1/6*(x_2-x_2)**3  ,  np.sin(phi)*-1/(E*Iyy)*-1/6*(x_3-x_3)**3  ,  np.cos(phi)*-1/(E*Izz)/6*(x_I-x_I)**3 + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(-h_a/2*(x_I-x_I)+(eta-h_a/2)*-(x_I-x_I))  ,  np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-h_a/2*(x_I-x_I)] + np.sin(phi)*-1/(E*Iyy)*-1/6*(x_I-x_I)**3,                # [7]
+    [-np.sin(phi)*-1/(E*Izz)*x_1  ,  -np.sin(phi)*-1/(E*Izz)  ,  np.cos(phi)*-1/(E*Iyy)*x_1  ,  np.cos(phi)*-1/(E*Iyy)  ,  -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_1-x_1)**3 + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_1-x_1)  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_2-x_2)**3 + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_2-x_2)  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_3-x_3)**3 + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_3-x_3)  ,  np.cos(phi)*-1/(E*Iyy)*-1/6*(x_1-x_1)**3  ,  np.cos(phi)*-1/(E*Iyy)*-1/6*(x_2-x_2)**3  ,  np.cos(phi)*-1/(E*Iyy)*-1/6*(x_3-x_3)**3  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_I-x_I)**3 + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(-h_a/2*(x_I-x_I)+(eta-h_a/2)*-(x_I-x_I))  ,  -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-h_a/2*(x_I-x_I)] + np.cos(phi)*-1/(E*Iyy)*-1/6*(x_I-x_I)**3,                # [8]
+    [np.cos(phi)*-1/(E*Izz)*x_2  ,  np.cos(phi)*-1/(E*Izz)  ,  np.sin(phi)*-1/(E*Iyy)*x_2  ,  np.sin(phi)*-1/(E*Iyy)  ,  np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])  ,  np.cos(phi)*-1/(E*Izz)/6*(x_2-x_1)**3 + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_2-x_1)  ,  np.cos(phi)*-1/(E*Izz)/6*(x_2-x_2)**3 + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_2-x_2)  ,  np.cos(phi)*-1/(E*Izz)/6*(x_3-x_3)**3 + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_3-x_3)  ,  np.sin(phi)*-1/(E*Iyy)*-1/6*(x_2-x_1)**3  ,  np.sin(phi)*-1/(E*Iyy)*-1/6*(x_2-x_2)**3  ,  np.sin(phi)*-1/(E*Iyy)*-1/6*(x_3-x_3)**3  ,  np.cos(phi)*-1/(E*Izz)/6*(x_2-x_I)**3 + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(-h_a/2*(x_2-x_I)+(eta-h_a/2)*-(x_2-x_I))  ,  np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-h_a/2*(x_2-x_I)] + np.sin(phi)*-1/(E*Iyy)*-1/6*(x_2-x_I)**3,                # [9]
+    [-np.sin(phi)*-1/(E*Izz)*x_2  ,  -np.sin(phi)*-1/(E*Izz)  ,  np.cos(phi)*-1/(E*Iyy)*x_2  ,  np.cos(phi)*-1/(E*Iyy)  ,  -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_2-x_1)**3 + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_2-x_1)  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_2-x_2)**3 + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_2-x_2)  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_3-x_3)**3 + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_3-x_3)  ,  np.cos(phi)*-1/(E*Iyy)*-1/6*(x_2-x_1)**3  ,  np.cos(phi)*-1/(E*Iyy)*-1/6*(x_2-x_2)**3  ,  np.cos(phi)*-1/(E*Iyy)*-1/6*(x_3-x_3)**3  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_2-x_I)**3 + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(-h_a/2*(x_2-x_I)+(eta-h_a/2)*-(x_2-x_I))  ,  -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-h_a/2*(x_2-x_I)] + np.cos(phi)*-1/(E*Iyy)*-1/6*(x_2-x_I)**3,                # [10]
+    [np.cos(phi)*-1/(E*Izz)*x_3  ,  np.cos(phi)*-1/(E*Izz)  ,  np.sin(phi)*-1/(E*Iyy)*x_3  ,  np.sin(phi)*-1/(E*Iyy)  ,  np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])  ,  np.cos(phi)*-1/(E*Izz)/6*(x_3-x_1)**3 + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_3-x_1)  ,  np.cos(phi)*-1/(E*Izz)/6*(x_3-x_2)**3 + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_3-x_2)  ,  np.cos(phi)*-1/(E*Izz)/6*(x_3-x_3)**3 + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_3-x_3)  ,  np.sin(phi)*-1/(E*Iyy)*-1/6*(x_3-x_1)**3  ,  np.sin(phi)*-1/(E*Iyy)*-1/6*(x_3-x_2)**3  ,  np.sin(phi)*-1/(E*Iyy)*-1/6*(x_3-x_3)**3  ,  np.cos(phi)*-1/(E*Izz)/6*(x_3-x_I)**3 + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(-h_a/2*(x_3-x_I)+(eta-h_a/2)*-(x_3-x_I))  ,  np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-h_a/2*(x_3-x_I)] + np.sin(phi)*-1/(E*Iyy)*-1/6*(x_3-x_I)**3,                # [11]
+    [-np.sin(phi)*-1/(E*Izz)*x_3  ,  -np.sin(phi)*-1/(E*Izz)  ,  np.cos(phi)*-1/(E*Iyy)*x_3  ,  np.cos(phi)*-1/(E*Iyy)  ,  -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_3-x_1)**3 + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_3-x_1)  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_3-x_2)**3 + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_3-x_2)  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_3-x_3)**3 + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_3-x_3)  ,  np.cos(phi)*-1/(E*Iyy)*-1/6*(x_3-x_1)**3  ,  np.cos(phi)*-1/(E*Iyy)*-1/6*(x_3-x_2)**3  ,  np.cos(phi)*-1/(E*Iyy)*-1/6*(x_3-x_3)**3  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_3-x_I)**3 + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(-h_a/2*(x_3-x_I)+(eta-h_a/2)*-(x_3-x_I))  ,  -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-h_a/2*(x_3-x_I)] + np.cos(phi)*-1/(E*Iyy)*-1/6*(x_3-x_I)**3,                # [12]
+    [-np.sin(phi)*-1/(E*Izz)*x_I  ,  -np.sin(phi)*-1/(E*Izz)  ,  np.cos(phi)*-1/(E*Iyy)*x_I  ,  np.cos(phi)*-1/(E*Iyy)  ,  -np.sin(phi)*(eta)*C_twist@np.array([[0],[-1]]) + np.cos(phi)*(h_a/2)*C_twist@np.array([[0],[-1]])  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_I-x_1)**3 + -np.sin(phi)*(eta)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_I-x_1) + np.cos(phi)*(h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_I-x_1)  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_2-x_2)**3 + -np.sin(phi)*(eta)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_2-x_2) + np.cos(phi)*(h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_2-x_2)  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_3-x_3)**3 + -np.sin(phi)*(eta)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_3-x_3)+ np.cos(phi)*(h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-(x_3-x_3)  ,  np.cos(phi)*-1/(E*Iyy)*-1/6*(x_I-x_1)**3  ,  np.cos(phi)*-1/(E*Iyy)*-1/6*(x_2-x_2)**3  ,  np.cos(phi)*-1/(E*Iyy)*-1/6*(x_3-x_3)**3  ,  -np.sin(phi)*-1/(E*Izz)/6*(x_I-x_I)**3 + -np.sin(phi)*(eta)*C_twist@np.array([[0],[-1]])*(-h_a/2*(x_I-x_I)+(eta-h_a/2)*-(x_I-x_I)) + np.cos(phi)*(h_a/2)*C_twist@np.array([[0],[-1]])*(-h_a/2*(x_I-x_I)+(eta-h_a/2)*-(x_I-x_I))  ,  -np.sin(phi)*(eta)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-h_a/2*(x_I-x_I) + np.cos(phi)*(h_a/2)*C_twist@np.array([[0],[-1]])*(eta-h_a/2)*-h_a/2*(x_I-x_I)] + np.cos(phi)*-1/(E*Iyy)*-1/6*(x_I-x_I)**3,                 # [13]
+    ])
+
+RHS_big = np.array([[0],
+                [integrator_simp(q, laa)[-1]]-Py_II,
+                [-Pz_II],
+                [-integrator_simp(qm, laa)[-1]-(C_a/4-h_a/2)*integrator_simp(q, laa)[-1]-h_a/2*(Py_II+Pz_II)],
+                [-(l_a-x_II)*Pz_II],
+                [-l_a*integrator_simp(q, laa)[-1]+integrator_simp(q*x, laa)[-1]+Py_II*(l_a-x_II)],
+                [d_1+np.cos(phi)*-1/(E*Iyy)*(1/6*x_1**3*integrator_simp(q, x11)[-1]-1/2*x_1**2*integrator_simp(q*x, x11)[-1]-1/6*(x_II-x_II)**3*Py_II) + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(x_1*integrator_simp(qm,x11)[1]+x_1*integrator_simp(q,x11)[1]*(C_a/4-h_a/2)+(Py_II+Pz_II)*h_a/2*(x_II-x_II) + (eta-h_a/2)*(-x_1*integrator_simp(q,x11)[1]+Py_II*(x_II-x_II))) + np.sin(phi)*-1/(E*Iyy)*Pz_II/6*(x_II-x_II)**3],
+                [-np.sin(phi)*-1/(E*Iyy)*(1/6*x_1**3*integrator_simp(q, x11)[-1]-1/2*x_1**2*integrator_simp(q*x, x11)[-1]-1/6*(x_II-x_II)**3*Py_II) + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(x_1*integrator_simp(qm,x11)[1]+x_1*integrator_simp(q,x11)[1]*(C_a/4-h_a/2)+(Py_II+Pz_II)*h_a/2*(x_II-x_II) + (eta-h_a/2)*(-x_1*integrator_simp(q,x11)[1]+Py_II*(x_II-x_II))) + np.cos(phi)*-1/(E*Iyy)*Pz_II/6*(x_II-x_II)**3],
+                [np.cos(phi)*-1/(E*Iyy)*(1/6*x_2**3*integrator_simp(q, x22)[-1]-1/2*x_2**2*integrator_simp(q*x, x22)[-1]-1/6*(x_II-x_II)**3*Py_II) + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(x_2*integrator_simp(qm,x22)[1]+x_2*integrator_simp(q,x22)[1]*(C_a/4-h_a/2)+(Py_II+Pz_II)*h_a/2*(x_II-x_II) + (eta-h_a/2)*(-x_2*integrator_simp(q,x22)[1]+Py_II*(x_II-x_II))) + np.sin(phi)*-1/(E*Iyy)*Pz_II/6*(x_II-x_II)**3],
+                [-np.sin(phi)*-1/(E*Iyy)*(1/6*x_2**3*integrator_simp(q, x22)[-1]-1/2*x_2**2*integrator_simp(q*x, x22)[-1]-1/6*(x_II-x_II)**3*Py_II) + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(x_2*integrator_simp(qm,x22)[1]+x_2*integrator_simp(q,x22)[1]*(C_a/4-h_a/2)+(Py_II+Pz_II)*h_a/2*(x_II-x_II) + (eta-h_a/2)*(-x_2*integrator_simp(q,x22)[1]+Py_II*(x_II-x_II))) + np.cos(phi)*-1/(E*Iyy)*Pz_II/6*(x_II-x_II)**3],
+                [d_3+np.cos(phi)*-1/(E*Iyy)*(1/6*x_3**3*integrator_simp(q, x33)[-1]-1/2*x_3**2*integrator_simp(q*x, x33)[-1]-1/6*(x_3-x_II)**3*Py_II) + np.cos(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(x_3*integrator_simp(qm,x33)[1]+x_3*integrator_simp(q,x33)[1]*(C_a/4-h_a/2)+(Py_II+Pz_II)*h_a/2*(x_3-x_II) + (eta-h_a/2)*(-x_3*integrator_simp(q,x33)[1]+Py_II*(x_3-x_II))) + np.sin(phi)*-1/(E*Iyy)*Pz_II/6*(x_3-x_II)**3],
+                [-np.sin(phi)*-1/(E*Iyy)*(1/6*x_3**3*integrator_simp(q, x33)[-1]-1/2*x_3**2*integrator_simp(q*x, x33)[-1]-1/6*(x_3-x_II)**3*Py_II) + -np.sin(phi)*(eta-h_a/2)*C_twist@np.array([[0],[-1]])*(x_3*integrator_simp(qm,x33)[1]+x_3*integrator_simp(q,x33)[1]*(C_a/4-h_a/2)+(Py_II+Pz_II)*h_a/2*(x_3-x_II) + (eta-h_a/2)*(-x_3*integrator_simp(q,x33)[1]+Py_II*(x_3-x_II))) + np.cos(phi)*-1/(E*Iyy)*Pz_II/6*(x_3-x_II)**3],
+                [-np.sin(phi)*-1/(E*Iyy)*(1/6*x_I**3*integrator_simp(q, xII)[-1]-1/2*x_I**2*integrator_simp(q*x, xII)[-1]-1/6*(x_II-x_II)**3*Py_II) + -np.sin(phi)*(eta)*C_twist@np.array([[0],[-1]])*(x_I*integrator_simp(qm,xII)[1]+x_I*integrator_simp(q,xII)[1]*(C_a/4-h_a/2)+(Py_II+Pz_II)*h_a/2*(x_II-x_II) + (eta-h_a/2)*(-x_I*integrator_simp(q,xII)[1]+Py_II*(x_II-x_II))) + np.cos(phi)*-1/(E*Iyy)*Pz_II/6*(x_II-x_II)**3 + np.cos(phi)*(h_a/2)*C_twist@np.array([[0],[-1]])*(x_I*integrator_simp(qm,xII)[1]+x_I*integrator_simp(q,xII)[1]*(C_a/4-h_a/2)+(Py_II+Pz_II)*h_a/2*(x_II-x_II) + (eta-h_a/2)*(-x_I*integrator_simp(q,xII)[1]+Py_II*(x_II-x_II)))],
+])
+
+solution_big = np.linalg.inv(A_big)@RHS_big
+print(solution_big)
+
