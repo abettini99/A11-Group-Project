@@ -67,6 +67,18 @@ def integrator_cumutrap(f, x, x0):
     return F 
 
 def integrator_simp(f, x, F0):
+    
+    """
+    == inputs:
+    f   -- np.array of function values in "y" direction
+    x   -- np.array of x locations of functions values in "y" direction
+    F0  -- integration value at x0
+    == outputs:
+    F   -- np.array of all the integration values of "f" up to the respective "x" value
+ 
+    Integrate a given array along the x array using the Simpson's Rule. Each output F[i] corresponds to the integration from x[0] to x[i]. 
+    """
+    
     F = np.empty(x.shape)
     F[0] = F0
     for i in range(2,x.shape[0]):
