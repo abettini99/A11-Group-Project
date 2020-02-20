@@ -66,12 +66,19 @@ def integrator_cumutrap(f, x, x0):
     F = x0 + np.sum( ((x[1:] - x[:-1])/2) * (f[1:] + f[:-1]) )
     return F 
 
-def integrator_simp(f, x, a, b, dx):
-    Flst = []
-    Flst.append(  (f[2::2] + 4*(f[1:-1:2]) + f[:-2:2]) )
-    Farr = np.array(Flst)
-    F = dx/3 * np.sum(Farr)
-    return Farr, F
+def integrator_simp(f, x, F0):
+    F = np.empty(x.shape)
+    F[0] = F0
+    for i in range(2,x.shape[0]):
+        F[i] = F[i-2] + (((x[i] - x[i-2])/6) * (f[i] + 4*f[i-1] + f[i-2]))
+    return F
+
+def integrator_cumusimp(f, x, F0):
+    Farr = np.empty(x.shape)
+    Farr[0] = F0
+    for i in range(2,x.shape[0]):
+        Farr[i] = Farr[i-2] + (((x[i] - x[i-2])/6) * (f[i] + 4*f[i-1] + f[i-2]))
+    return Farr[-1]
 
 def st_locations(C_a, h_a, n_st):
     """
