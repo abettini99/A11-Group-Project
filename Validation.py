@@ -41,6 +41,7 @@ for line in inp:
 xx = []
 yy = []
 zz = []
+yyzz = []
 i = 0
 
 #Append both the node number and the x,y,z coordinate respectively to the 
@@ -49,6 +50,7 @@ for i in range(len(nodes)):
     xx.append(nodes[i][:2])
     yy.append([nodes[i][0]]+[nodes[i][2]])
     zz.append([nodes[i][0]]+[nodes[i][3]])
+    yyzz.append([nodes[i][0]]+[nodes[i][2]]+[nodes[i][3]])
     i = i+1
 
 #Below the airfoil is plotted
@@ -57,7 +59,7 @@ x,y,z = nodes[:,1], nodes[:,2], nodes[:,3]
 fig = plt.figure()
 ax = plt.axes(projection='3d')
 ax.scatter3D(x,y,z, c=z, cmap='Greens')
-plt.show
+plt.show()
 
 #Create a list of only the max and min numbers of z, including the node number
 #which we need later on for the rpt file to check the corresping stresses and 
@@ -76,12 +78,26 @@ zz = np.array(zz)
 zmax = np.max(zz[:,1])
 zmin = np.min(zz[:,1])
 
+yyzz = np.array(yyzz)
+
+# The nodes at the hinge line are generated in a list
+hinge_line = []
+i=0
+
+for i in range(len(yyzz)):        
+    if yyzz[i,1] == 0 and yyzz[i,2] == 0:
+        hinge_line.append(i+1)
+        i = i+1
+    else:
+        i = i+1
+
+
 # here, the leading and trailing edge nodes are put into a list
 le = []
 i=0
 for i in range(len(zz)):
     if zz[i,1] == zmax:
-        le.append(i)
+        le.append(i+1)
         i = i+1
     else:
         i = i+1
@@ -90,37 +106,118 @@ te = []
 i=0
 for i in range(len(zz)):
     if zz[i,1] == zmin:
-        te.append(i)
+        te.append(i+1)
         i = i+1
     else:
         i = i+1
 
+# Create list or array of x locations corresponding to the nodes of the hingline
+xloc_hinge = []
+
+i=0
+p=0
+
+for i in range(len(hinge_line)):
+    for p in range(len(xx)):
+        if hinge_line[i] == xx[p,0]:
+            xloc_hinge.append(xx[p,:2])
+            p = p+1
+        else:
+            p = p+1
+    i = i+1
+xloc_hinge = np.array(xloc_hinge)    
+xloc_hinge = xloc_hinge[xloc_hinge[:, 1].argsort()] 
 
 #Create list or array of x locations corresponding to the nodes of the LE and
 #TE
 xloc_LE = []
+
 i=0
 p=0
-for i in range(len(xx)):
-    for p in range(len(le)):
-        if xx[i,0] == le[p]:
-            xloc_LE.append(xx[i,1])
+
+for i in range(len(le)):
+    for p in range(len(xx)):
+        if le[i] == xx[p,0]:
+            xloc_LE.append(xx[p,:2])
             p = p+1
         else:
             p = p+1
-        i = i+1
-    else:
-        i = i+1
-        
-# xloc_TE = []
-# i=0
-# for i in range(len(xx)):
-#     if xx[i,0] == te[i]:
-#         xloc_TE.append(xx[i,1])
-#         i = i+1
-#     else:
-#         i = i+1
+    i = i+1
+xloc_LE = np.array(xloc_LE)    
+xloc_LE = xloc_LE[xloc_LE[:, 1].argsort()] 
 
 
 
+xloc_TE = []
+i=0
+p=0
 
+for i in range(len(te)):
+    for p in range(len(xx)):
+        if te[i] == xx[p,0]:
+            xloc_TE.append(xx[p,:2])
+            p = p+1
+        else:
+            p = p+1
+    i = i+1
+xloc_TE = np.array(xloc_TE)    
+xloc_TE = xloc_TE[xloc_TE[:, 1].argsort()] 
+
+
+
+#von misses and normal stresses jam straight
+stresses_jam_straight1=np.genfromtxt('B737.rpt', skip_header=13390, skip_footer=59962-19168-134)
+stresses_jam_straight2=np.genfromtxt('B737.rpt', skip_header=19186, skip_footer=59962-20042-127)
+
+stresses_jam_straight=np.vstack((stresses_jam_straight1,stresses_jam_straight2))
+
+#deflections jam straight
+deflections_jam_straight=np.genfromtxt('B737.rpt', skip_header=33374, skip_footer=59962-39962-77)
+deflection_y=deflections_jam_straight[:,[0,3]]   
+
+#bending deflections
+deflections_bending=np.genfromtxt('B737.rpt', skip_header=20074, skip_footer=59962-26662-115)
+deflection_y_bending=deflections_bending[:,[0,3]] 
+
+deflection_list_hinge = []
+i = 0
+p = 0
+for i in range(len(xloc_hinge)):
+    for p in range(len(deflection_y_bending)):
+        if xloc_hinge[i,0] == deflection_y_bending[p,0]:
+            deflection_list_hinge.append(deflection_y_bending[p,1])
+            p = p+1
+        else:
+            p = p+1
+    i = i+1
+
+
+deflection_list_LE = []
+i = 0
+p = 0
+for i in range(len(xloc_LE)):
+    for p in range(len(deflection_y_bending)):
+        if xloc_LE[i,0] == deflection_y_bending[p,0]:
+            deflection_list_LE.append(deflection_y_bending[p,1])
+            p = p+1
+        else:
+            p = p+1
+    i = i+1
+
+deflection_list_TE = []
+i = 0
+p = 0
+for i in range(len(xloc_TE)):
+    for p in range(len(deflection_y_bending)):
+        if xloc_TE[i,0] == deflection_y_bending[p,0]:
+            deflection_list_TE.append(deflection_y_bending[p,1])
+            p = p+1
+        else:
+            p = p+1
+    i = i+1
+
+
+plt.plot(xloc_TE[:,1], deflection_list_hinge)
+plt.show()
+    
+ 
