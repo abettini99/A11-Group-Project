@@ -11,7 +11,6 @@ Coordinate System: x' (span-wise), y'(perpendicular to x',z' from symmetry line 
 ##  =========== Library Imports: =========== 
 import numpy as np
 import scipy.linalg as sp
-#import numpy.linalg as la
 import math as m
 import matplotlib.pyplot as plt
 
@@ -61,11 +60,11 @@ def integrator_trap(f, x, x0):
     F = np.empty(x.shape)
     F[0] = x0
     for i in range(1,x.shape[0]):
-        F[i] = F[i-1] + np.abs(x[i] - x[i-1])/2*(f[i] + f[i-1])
+        F[i] = F[i-1] + (x[i] - x[i-1])/2*(f[i] + f[i-1])
     return F
 
 def integrator_cumutrap(f, x, x0):
-    F = x0 + np.sum( np.abs(x[1:] - x[:-1])/2 * (f[1:] + f[:-1]) )
+    F = x0 + np.sum( ((x[1:] - x[:-1])/2) * (f[1:] + f[:-1]) )
     return F 
 
 def integrator_simp(f, x):
@@ -146,50 +145,50 @@ def McCauley0(x,x0):
     return np.maximum(x-x0, np.zeros(x.shape))/(x-x0)
 
 ##  =========== Input Parameters: =========== 
-C_a     = 0.515 ## aileron chord                                [m]
-l_a     = 2.691 ## span of aileron                              [m]
-x_1     = 0.174 ## x-location of hinge 1                        [m]
-x_2     = 1.051 ## x-location of hinge 2                        [m]
-x_3     = 2.512 ## x-location of hinge 3                        [m]
-x_a     = 30    ## distance between Actuator I and Actuator II  [cm]
-h_a     = 24.8  ## aileron height                               [cm]
-t_sk    = 1.1   ## skin thickness                               [mm]
-t_sp    = 2.2   ## spar thickness                               [mm]
-t_st    = 1.2   ## stiffener thickness                          [mm]
-h_st    = 1.5   ## stiffener height                             [cm]
-w_st    = 3.0   ## stiffener width                              [cm]
-n_st    = 11    ## number of stiffeners                         [-]
-d_1     = 1.034 ## vertical displacement hinge 1                [cm]
-d_3     = 2.066 ## vertical displacement hinge 3                [cm]
-phi     = 25    ## aileron deflection                           [deg]
-P       = 20.6  ## actuator load                                [kN]
-E       = 73.1  ## material Young's modulus                     [GPa]
-G       = 28.0  ## material shear moduus                        [GPa]
-rho     = 2780  ## material density                             [kg m^-3]
-dx      = 1e-3  ## step size                                    [m]
-#
-## B737
-#C_a     = 0.605 ## aileron chord                                [m]
-#l_a     = 2.661 ## span of aileron                              [m]
-#x_1     = 0.172 ## x-location of hinge 1                        [m]
-#x_2     = 1.211 ## x-location of hinge 2                        [m]
-#x_3     = 2.591 ## x-location of hinge 3                        [m]
-#x_a     = 35    ## distance between Actuator I and Actuator II  [cm]
-#h_a     = 20.5  ## aileron height                               [cm]
+#C_a     = 0.515 ## aileron chord                                [m]
+#l_a     = 2.691 ## span of aileron                              [m]
+#x_1     = 0.174 ## x-location of hinge 1                        [m]
+#x_2     = 1.051 ## x-location of hinge 2                        [m]
+#x_3     = 2.512 ## x-location of hinge 3                        [m]
+#x_a     = 30    ## distance between Actuator I and Actuator II  [cm]
+#h_a     = 24.8  ## aileron height                               [cm]
 #t_sk    = 1.1   ## skin thickness                               [mm]
-#t_sp    = 2.8   ## spar thickness                               [mm]
+#t_sp    = 2.2   ## spar thickness                               [mm]
 #t_st    = 1.2   ## stiffener thickness                          [mm]
-#h_st    = 1.6   ## stiffener height                             [cm]
-#w_st    = 1.9   ## stiffener width                              [cm]
-#n_st    = 15    ## number of stiffeners                         [-]
-#d_1     = 1.154 ## vertical displacement hinge 1                [cm]
-#d_3     = 1.840 ## vertical displacement hinge 3                [cm]
-#phi     = 28    ## aileron deflection                           [deg]
-#P       = 97.4  ## actuator load                                [kN]
+#h_st    = 1.5   ## stiffener height                             [cm]
+#w_st    = 3.0   ## stiffener width                              [cm]
+#n_st    = 11    ## number of stiffeners                         [-]
+#d_1     = 1.034 ## vertical displacement hinge 1                [cm]
+#d_3     = 2.066 ## vertical displacement hinge 3                [cm]
+#phi     = 25    ## aileron deflection                           [deg]
+#P       = 20.6  ## actuator load                                [kN]
 #E       = 73.1  ## material Young's modulus                     [GPa]
 #G       = 28.0  ## material shear moduus                        [GPa]
 #rho     = 2780  ## material density                             [kg m^-3]
 #dx      = 1e-3  ## step size                                    [m]
+#
+## B737
+C_a     = 0.605 ## aileron chord                                [m]
+l_a     = 2.661 ## span of aileron                              [m]
+x_1     = 0.172 ## x-location of hinge 1                        [m]
+x_2     = 1.211 ## x-location of hinge 2                        [m]
+x_3     = 2.591 ## x-location of hinge 3                        [m]
+x_a     = 35    ## distance between Actuator I and Actuator II  [cm]
+h_a     = 20.5  ## aileron height                               [cm]
+t_sk    = 1.1   ## skin thickness                               [mm]
+t_sp    = 2.8   ## spar thickness                               [mm]
+t_st    = 1.2   ## stiffener thickness                          [mm]
+h_st    = 1.6   ## stiffener height                             [cm]
+w_st    = 1.9   ## stiffener width                              [cm]
+n_st    = 15    ## number of stiffeners                         [-]
+d_1     = 1.154 ## vertical displacement hinge 1                [cm]
+d_3     = 1.840 ## vertical displacement hinge 3                [cm]
+phi     = 28    ## aileron deflection                           [deg]
+P       = 97.4  ## actuator load                                [kN]
+E       = 73.1  ## material Young's modulus                     [GPa]
+G       = 28.0  ## material shear moduus                        [GPa]
+rho     = 2780  ## material density                             [kg m^-3]
+dx      = 1e-3  ## step size                                    [m]
 
 ##  =========== Switch to SI: =========== 
 x_a     /= 100                              ##[cm -> m]
@@ -207,20 +206,11 @@ phi     *= np.pi/180                        ##[deg -> rad]
 P       *= 1000                             ##[kN -> N]
 
 ## =========== Import Aero Data: ===========
-AeroDataLoad    = np.loadtxt("aerodynamicloaddo228.dat", delimiter=",")     ## Aero Data along [Z,X] [kN m^-1] 
+AeroDataLoad    = np.loadtxt("aerodynamicloaddo228.dat", delimiter=",")     ##[kN m^-1]
 theta_zi        = np.arange(1,82+1,1)/81*m.pi
 theta_xi        = np.arange(1,42+1,1)/41*m.pi
 AeroDataZ       = C_a - 0.5*( 0.5*C_a*(1-np.cos(theta_zi[:-1])) + 0.5*C_a/2*(1-np.cos(theta_zi[1:])) )
 AeroDataX       = 0.5*( 0.5*l_a*(1-np.cos(theta_xi[:-1])) + 0.5*l_a/2*(1-np.cos(theta_xi[1:])) )
-q               = np.zeros((AeroDataLoad.shape[1]))
-qm              = np.zeros((AeroDataLoad.shape[1]))
-for i in range(AeroDataLoad.shape[1]):
-    q[i]    = integrator_cumutrap(AeroDataLoad[:,i], AeroDataZ, 0)
-    qm[i]   = integrator_cumutrap(AeroDataLoad[:,i]*(AeroDataZ-0.25*C_a), AeroDataZ, 0)
-
-plt.plot(AeroDataX, q)
-plt.plot(AeroDataX, qm)
-plt.show()
 
 ## =========== Cross Section Properties:  =========== 
 ZY_stif     = st_locations(C_a, h_a, n_st)      ## [(Z,Y,Beta),(0,1,...,n_st-1)] of all stiffeners along airfoil
@@ -311,19 +301,6 @@ for stif in bottail_stify:
 for stif in botcirc_stify:
     y5 += McCauley0(-h_a/2*np.sin(s_qcirc[::-1]/(h_a/2)), stif)*stif
 
-#x0 = np.zeros((s_reso))
-#x2 = np.zeros((s_reso))
-#x3 = np.zeros((s_reso))
-#x5 = np.zeros((s_reso))
-#for stif in topcirc_stifx:
-#    x0 += McCauley0(h_a/2*np.sin(s_qcirc/(h_a/2)), stif)*stif     ## this flips it, trust me --> [1,1,1,1,0,0,0,0,0] we want to flip it -->  -1 -> [0,0,0,0,-1,-1,-1,-1] --> *(-1) -> [0,0,0,0,1,1,1,1]
-#for stif in toptail_stifx:
-#    x2 += (McCauley0(s_tail[::-1]*m.sin(alpha_tail), stif) -1)*(-1)*stif
-#for stif in bottail_stifx:
-#    x3 += (McCauley0(-s_tail*m.sin(alpha_tail), stif) -1)*(-1)*stif
-#for stif in botcirc_stifx:
-#    x5 += McCauley0(-h_a/2*np.sin(s_qcirc[::-1]/(h_a/2)), stif)*stif
-
 #plt.plot(s_qcirc, y0)
 #plt.plot(s_tail, y2)
 #plt.plot(s_tail, y3)
@@ -349,32 +326,17 @@ qV0y =                          Coeffz * (t_sk * integrator_trap(s0[1],s0[2],0) 
 qV1y =                          Coeffz *  t_sp * integrator_trap(s1[1],s1[2],0)
 qV2y = qV0y[-1] +   qV1y[-1] +  Coeffz * (t_sk * integrator_trap(s2[1],s2[2],0)    + A_stif*y2)
 qV3y = qV2y[-1] +               Coeffz * (t_sk * integrator_trap(s3[1],s3[2],0)    + A_stif*y3)
-qV4y =                         -Coeffz *  t_sp * integrator_trap(s4[1],s4[2],0)                     ## Negative as the integral starts from 0 to -ha/2 whereas official integral starts from -ha/2 to 0.
-qV5y = qV3y[-1] -   qV4y[-1] +  Coeffz * (t_sk * integrator_trap(s5[1],s5[2],0)    + A_stif*y5)
-#
-#qV0z =                          Coeffy * (t_sk * integrator_trap(s0[0],s0[2],0)    )#+ A_stif*y0)
-#qV1z =                          Coeffy *  t_sp * integrator_trap(s1[0],s1[2],0)
-#qV2z = qV0z[-1] +   qV1z[-1] +  Coeffy * (t_sk * integrator_trap(s2[0],s2[2],0)    )#+ A_stif*y2)
-#qV3z = qV2z[-1] +               Coeffy * (t_sk * integrator_trap(s3[0],s3[2],0)    )#+ A_stif*y3)
-#qV4z =                         -Coeffy *  t_sp * integrator_trap(s4[0],s4[2],0)
-#qV5z = qV3z[-1] -   qV4z[-1] +  Coeffy * (t_sk * integrator_trap(s5[0],s5[2],0)    )#+ A_stif*y5)
-#
-#plt.plot(s_qcirc, qV0y)
-#plt.plot(s_qcirc[-1] + s_spar, qV1y[::-1])
-#plt.plot(s_qcirc[-1] + s_tail, qV2y)
-#plt.plot(s_qcirc[-1] + s_tail[-1] + s_tail, qV3y)
-#plt.plot(s_qcirc[-1] + s_tail[-1] + s_tail[-1] + s_spar, qV4y[::-1])
-#plt.plot(s_qcirc[-1] + s_tail[-1] + s_tail[-1] + s_qcirc, qV5y)
-#plt.show()
-#
-#plt.plot(s_qcirc, qV0z)
-#plt.plot(s_qcirc[-1] + s_spar, qV1z[::-1])
-#plt.plot(s_qcirc[-1] + s_tail, qV2z)
-#plt.plot(s_qcirc[-1] + s_tail[-1] + s_tail, qV3z)
-#plt.plot(s_qcirc[-1] + s_tail[-1] + s_tail[-1] + s_spar, qV4z[::-1])
-#plt.plot(s_qcirc[-1] + s_tail[-1] + s_tail[-1] + s_qcirc, qV5z)
-#plt.show()
-#
+qV4y =                          Coeffz *  t_sp * integrator_trap(s4[1],s4[2],0)
+qV5y = qV3y[-1] +   qV4y[-1] +  Coeffz * (t_sk * integrator_trap(s5[1],s5[2],0)    + A_stif*y5)
+
+plt.plot(s_qcirc, qV0y)
+plt.plot(s_qcirc[-1] + s_spar, qV1y[::-1])
+plt.plot(s_qcirc[-1] + s_tail, qV2y)
+plt.plot(s_qcirc[-1] + s_tail[-1] + s_tail, qV3y)
+plt.plot(s_qcirc[-1] + s_tail[-1] + s_tail[-1] + s_spar, qV4y[::-1])
+plt.plot(s_qcirc[-1] + s_tail[-1] + s_tail[-1] + s_qcirc, qV5y)
+plt.show()
+
 ## Solving for closed structure flows
 # Ax = b
 A = np.zeros((2,2))
@@ -404,11 +366,11 @@ p5 = h_a/2                      ## np.sqrt((s5[0]+C_airfoil)*(s5[0]+C_airfoil) +
 ## Take moment around Spar 
 eta =  ( integrator_cumutrap(p0*qV0y,s0[2],0) + integrator_cumutrap(p1*qV1y,s1[2],0) + integrator_cumutrap(p2*qV2y,s2[2],0) + integrator_cumutrap(p3*qV3y,s3[2],0) + integrator_cumutrap(p4*qV4y,s4[2],0) + integrator_cumutrap(p5*qV5y,s5[2],0) + 2*AA_circ*q0V0 + 2*AA_tail*q0V1 )
 eta += h_a/2
-#
-#print(2*AA_circ*q0V0, 2*AA_tail*q0V1)
-#print(integrator_cumutrap(p0*qV0y,s0[2],0), integrator_cumutrap(p5*qV5y,s5[2],0))
-#print(integrator_cumutrap(p2*qV2y,s2[2],0), integrator_cumutrap(p3*qV3y,s3[2],0))
-#
+
+print(2*AA_circ*q0V0, 2*AA_tail*q0V1)
+print(integrator_cumutrap(p0*qV0y,s0[2],0), integrator_cumutrap(p5*qV5y,s5[2],0))
+print(integrator_cumutrap(p2*qV2y,s2[2],0), integrator_cumutrap(p3*qV3y,s3[2],0))
+
 #plt.plot(s_qcirc,qV0z)
 #plt.plot(s_spar+s_qcirc[-1],qV1z)
 #plt.plot(s_qcirc+s_spar[-1]+s_qcirc[-1],qV2z)
@@ -417,33 +379,12 @@ eta += h_a/2
 #plt.plot(s_tail[-1] + s_spar[-1] + s_tail, qV5z)
 #plt.show()
 
-## =========== Torsional Stiffness:  =========== 
-#Cx = d
-
-C = np.zeros((3,3))
-C[0,0],C[0,1],C[0,2] = 2*AA_circ,                                       2*AA_tail,                                  0
-C[1,0],C[1,1],C[1,2] = 1/(2*AA_circ)*(np.pi/(h_a/2)/t_sk + h_a/t_sp),   -1/(2*AA_circ)*(h_a/t_sp),                  -1
-C[2,0],C[2,1],C[2,2] = -1/(2*AA_tail)*(h_a/t_sp),                       1/(2*AA_tail)*(2*l_tail/t_sk + h_a/t_sp),   -1
-
-d = np.zeros((3))
-d[0] = 1
-d[1] = 0
-d[2] = 0
-
-x = sp.solve(C,d)
-qT0 = x[0]
-qT1 = x[1]
-dtheta_dz = x[2]/G ## dtheta_dz for T = 1 !!!
-
-J = 1/(G*dtheta_dz) ## dtheta_dz = T(z)/(GJ)
-
 print("=========== Statistics: ===========")
 print("Total Area \t\t= {:.4g} \tm^2".format(A_circ+A_spar+2*A_tail + n_st*A_stif))
 print("Airfoil Centroid \t= {:4f} \tm".format(C_airfoil))
 print("Cross Section Izz \t= {:4g} \tm^4".format(Izz_airfoil))
 print("Cross Section Iyy \t= {:4g} \tm^4".format(Iyy_airfoil))
-print("Shear Center from LE \t= {:4f} \tm \t(= {:4f} m from Spar)".format(eta,eta-h_a/2))
-print("Torsional Constant \t= {:4g} \tm^4".format(J))
+print("Shear Center from LE \t= {:4f} \tm".format(eta))
 
 #print(ZY_stif)
 #
