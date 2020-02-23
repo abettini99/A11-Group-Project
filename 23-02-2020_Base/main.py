@@ -15,7 +15,6 @@ import scipy.linalg as sp
 import math as m
 import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.colors
 import time
 
 ##  =========== Functions: ===========
