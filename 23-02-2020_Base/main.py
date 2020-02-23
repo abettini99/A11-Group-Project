@@ -161,36 +161,36 @@ def MC0(x,x0):
         return 1 if x-x0 > 0 else 0
 
 ##  =========== Input Parameters: =========== 
-Aircraft= "Do228"   ## Aircraft type, relevant for aerodynamic load
-C_a     = 0.515     ## aileron chord                                [m]
-l_a     = 2.691     ## span of aileron                              [m]
-x_1     = 0.174     ## x-location of hinge 1                        [m]
-x_2     = 1.051     ## x-location of hinge 2                        [m]
-x_3     = 2.512     ## x-location of hinge 3                        [m]
-x_a     = 30        ## distance between Actuator I and Actuator II  [cm]
-h_a     = 24.8      ## aileron height                               [cm]
-t_sk    = 1.1       ## skin thickness                               [mm]
-t_sp    = 2.2       ## spar thickness                               [mm]
-t_st    = 1.2       ## stiffener thickness                          [mm]
-h_st    = 1.5       ## stiffener height                             [cm]
-w_st    = 3.0       ## stiffener width                              [cm]
-n_st    = 11        ## number of stiffeners                         [-]
-d_1     = 1.034     ## vertical displacement hinge 1                [cm]
-d_3     = 2.066     ## vertical displacement hinge 3                [cm]
-phi     = 25        ## aileron deflection                           [deg]
-P       = 20.6      ## actuator load                                [kN]
+Aircraft= "Do228"       ## Aircraft type, relevant for aerodynamic load
+C_a     = 0.515         ## aileron chord                                [m]
+l_a     = 2.691         ## span of aileron                              [m]
+x_1     = 0.174         ## x-location of hinge 1                        [m]
+x_2     = 1.051         ## x-location of hinge 2                        [m]
+x_3     = 2.512         ## x-location of hinge 3                        [m]
+x_a     = 30            ## distance between Actuator I and Actuator II  [cm]
+h_a     = 24.8          ## aileron height                               [cm]
+t_sk    = 1.1           ## skin thickness                               [mm]
+t_sp    = 2.2           ## spar thickness                               [mm]
+t_st    = 1.2           ## stiffener thickness                          [mm]
+h_st    = 1.5           ## stiffener height                             [cm]
+w_st    = 3.0           ## stiffener width                              [cm]
+n_st    = 11            ## number of stiffeners                         [-]
+d_1     = 1.034         ## vertical displacement hinge 1                [cm]
+d_3     = 2.066         ## vertical displacement hinge 3                [cm]
+phi     = 25            ## aileron deflection                           [deg]
+P       = 20.6          ## actuator load                                [kN]
 
-E       = 73.1      ## material Young's modulus                     [GPa]
-G       = 28.0      ## material shear moduus                        [GPa]
-rho     = 2780      ## material density                             [kg m^-3]
+E       = 73.1          ## material Young's modulus                     [GPa]
+G       = 28.0          ## material shear moduus                        [GPa]
+rho     = 2780          ## material density                             [kg m^-3]
 
-x_loc   = 0.5       ## Point along aileron to visualize stress/shear
-dx      = 1e-3      ## step size                                    [m]
-textsize= [12,14,16]    ## graph text size
-colors  = ["blue","green","yellow","orange","red"]
+x_loc   = 0.5           ## Point along aileron to visualize stress/shear
+dx      = 1e-3          ## step size                                    [m]
+textsize= [12,14,16]    ## graph text size                              [small, medium, large] fonts respectively
+colors  = ["blue","green","yellow","orange","red"]                   ## Graph colors --> from lowest value color to highest value color
 
-export  = True          ## want to export graphs?
-texpsize= [26,28,30]    ## graph text export size
+export  = True          ## want to export graphs?                       True , False
+texpsize= [26,28,30]    ## graph text export size                       [small, medium, large] fonts respectively
 
 ##  =========== Main Program: =========== 
 ## Start simulation timer
@@ -1163,7 +1163,6 @@ ax3[1,1].tick_params(which='major', length=10, width=2, direction='inout')
 ax3[1,1].tick_params(which='minor', length=5, width=2, direction='in')
 
 fig3.tight_layout()
-
 
 fig4,ax4 = plt.subplots(1,2,squeeze=False,figsize=(16,9))
 fig4.canvas.set_window_title('theta, Mx') 
