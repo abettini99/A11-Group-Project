@@ -799,7 +799,7 @@ if export:
 
     fig, ax = plt.subplots(1,1,squeeze=False,figsize=(16,9))
     ax[0,0].plot(x, -Rz)
-    ax[0,0].set_ylabel(r"Shear Force in $-z^{\prime}$ direction $R_z^{\prime}\,\,[N]$")
+    ax[0,0].set_ylabel(r"Shear Force in $z^{\prime}$ direction $-R_z^{\prime}\,\,[N]$")
     ax[0,0].set_xlabel(r"Position along Aileron $x\,\,[m]$")
     ax[0,0].set_xlim(0,l_a)
     ax[0,0].grid(True,which="major",color="#999999")
@@ -1104,7 +1104,7 @@ ax2[1,0].tick_params(which='major', length=10, width=2, direction='inout')
 ax2[1,0].tick_params(which='minor', length=5, width=2, direction='in')
 
 ax2[1,1].plot(x, -Rz)
-ax2[1,1].set_ylabel(r"Shear Force in $-z^{\prime}$ direction $R_z^{\prime}\,\,[N]$")
+ax2[1,1].set_ylabel(r"Shear Force in $z^{\prime}$ direction $-R_z^{\prime}\,\,[N]$")
 ax2[1,1].set_xlabel(r"Position along Aileron $x\,\,[m]$")
 ax2[1,1].set_xlim(0,l_a)
 ax2[1,1].grid(True,which="major",color="#999999")
