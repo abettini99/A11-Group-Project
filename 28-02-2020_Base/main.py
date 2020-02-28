@@ -88,6 +88,16 @@ def integrator_cumusimp(f, x, F0=0):
     return F
 
 def central_derivative(F,x):
+    """
+    == inputs:
+    F   -- np.array of function values in "y" direction
+    x   -- np.array of x locations of functions values in "y" direction
+    == outputs:
+    f   -- np.array of all the derivative values of "F" up to the respective "x" value
+ 
+    Take the derivative of a given array along the x array using a central difference scheme.
+    """
+
     f = np.empty(x.shape)
     f[0] = 1/(x[1]-x[0])*(F[1]-F[0])
     f[1:-1] = 1/(x[2:] - x[:-2])*(F[2:] - F[:-2])
@@ -183,7 +193,7 @@ n_st    = 11            ## number of stiffeners                         [-]
 d_1     = 1.034         ## vertical displacement hinge 1                [cm]
 d_3     = 2.066         ## vertical displacement hinge 3                [cm]
 phi     = 25            ## aileron deflection                           [deg]
-P       = 20.6          ## actuator load                                [kN]
+P_II    = 20.6          ## actuator II load                             [kN]
 
 E       = 73.1          ## material Young's modulus                     [GPa]
 G       = 28.0          ## material shear moduus                        [GPa]
@@ -215,7 +225,7 @@ t_st    /= 1000                             ##[mm -> m]
 E       *= 1000000000                       ##[GPa -> Pa]
 G       *= 1000000000                       ##[GPa -> Pa]
 phi     *= np.pi/180                        ##[deg -> rad]
-P       *= 1000                             ##[kN -> N]
+P_II    *= 1000                             ##[kN -> N]
 
 ## =========== Import Aero Data: ===========
 if Aircraft == "Do228":
@@ -342,12 +352,12 @@ s_spar = np.linspace(0,h_a/2,s_reso)            ## Spar
 s_tail = np.linspace(0,l_tail,s_reso)           ## Single Tail
 
 ## Create list of all z,y,s list for integrals --> play around with plotting s[0] vs s[1] and plotting s[0][:400] to s[1][:400]
-s0 = np.array(  [h_a/2 - h_a/2*np.cos(s_qcirc/(h_a/2)) -C_airfoil                                        , h_a/2*np.sin(s_qcirc/(h_a/2))             , s_qcirc]   )
-s1 = np.array(  [(h_a/2 + t_sp/2)*np.ones((s_reso)) -C_airfoil                                             , s_spar                                    , s_spar]    )
-s2 = np.array(  [h_a/2 + ( l_tail*m.cos(alpha_tail) - s_tail[::-1]*m.cos(alpha_tail) ) -C_airfoil , s_tail[::-1]*m.sin(alpha_tail)            , s_tail]    )
-s3 = np.array(  [h_a/2 + ( l_tail*m.cos(alpha_tail) - s_tail*m.cos(alpha_tail) ) -C_airfoil       , -s_tail*m.sin(alpha_tail)                 , s_tail]    )
-s4 = np.array(  [(h_a/2 + t_sp/2)*np.ones((s_reso)) -C_airfoil                                             , -s_spar                                   , s_spar]    )
-s5 = np.array(  [h_a/2 - h_a/2*np.cos(s_qcirc[::-1]/(h_a/2)) -C_airfoil                                  , -h_a/2*np.sin(s_qcirc[::-1]/(h_a/2))      , s_qcirc]   )
+s0 = np.array(  [h_a/2 - h_a/2*np.cos(s_qcirc/(h_a/2)) -C_airfoil                                       , h_a/2*np.sin(s_qcirc/(h_a/2))             , s_qcirc]   )
+s1 = np.array(  [(h_a/2 + t_sp/2)*np.ones((s_reso)) -C_airfoil                                          , s_spar                                    , s_spar]    )
+s2 = np.array(  [h_a/2 + ( l_tail*m.cos(alpha_tail) - s_tail[::-1]*m.cos(alpha_tail) ) -C_airfoil       , s_tail[::-1]*m.sin(alpha_tail)            , s_tail]    )
+s3 = np.array(  [h_a/2 + ( l_tail*m.cos(alpha_tail) - s_tail*m.cos(alpha_tail) ) -C_airfoil             , -s_tail*m.sin(alpha_tail)                 , s_tail]    )
+s4 = np.array(  [(h_a/2 + t_sp/2)*np.ones((s_reso)) -C_airfoil                                          , -s_spar                                   , s_spar]    )
+s5 = np.array(  [h_a/2 - h_a/2*np.cos(s_qcirc[::-1]/(h_a/2)) -C_airfoil                                 , -h_a/2*np.sin(s_qcirc[::-1]/(h_a/2))      , s_qcirc]   )
 
 ## Create stiffener influences
 y0 = np.zeros((s_reso))
@@ -435,7 +445,7 @@ qV5z = qV3z[-1] -   qV4z[-1] +  Coeffy * (t_sk * integrator_trap(s5[0],s5[2],0) 
 #
 
 ## Solving for closed structure flows
-# Ax = b for q0Vy, Ax = c for q0Vz
+# Ax = b for q0Vy, Ax = c for q0Vy
 A = np.zeros((2,2))
 A[0,0],A[0,1] = 2*l_qcirc/t_sk+h_a/t_sp,        -h_a/t_sp
 A[1,0],A[1,1] = -h_a/t_sp,                       h_a/t_sp+2*l_tail/t_sk
@@ -502,8 +512,8 @@ J = 1/(G*dtheta_dx) ## dtheta_dx = T(x)/(GJ)
 ## Additional Parameters:
 x_I     = x_2-x_a/2
 x_II    = x_2+x_a/2
-Py_II   = -P*m.sin(phi)
-Pz_II   = P*m.cos(phi)
+Py_II   = -P_II*m.sin(phi)
+Pz_II   = P_II*m.cos(phi)
 
 ## Set up Aero Data properly:
 x_reso  = int(l_a/dx)
@@ -587,8 +597,9 @@ Mz      = np.sum(Mz_LHS(x)*vec)         + Mz_RHS(x)
 theta   = np.sum(theta_LHS(x)*vec)      + theta_RHS(x)
 u       = np.sum(u_LHS(x)*vec)          + u_RHS(x)
 v       = np.sum(v_LHS(x)*vec)          + v_RHS(x)
-U       = m.cos(phi)*(u - theta*(eta-h_a/2) ) + m.sin(phi)*v
-V       = -m.sin(phi)*(u - theta*(eta-h_a/2) ) + m.cos(phi)*v
+
+U       = m.cos(phi)*(u + theta*(eta-h_a/2) ) + m.sin(phi)*v
+V       = -m.sin(phi)*(u + theta*(eta-h_a/2) ) + m.cos(phi)*v
 
 dudx    = central_derivative(u,x)
 dvdx    = central_derivative(v,x)
